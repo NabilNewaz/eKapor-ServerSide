@@ -31,11 +31,12 @@ function verifyJWT(req, res, next) {
 async function run() {
     try {
         const categoriesCollection = client.db('eKapor').collection('categories');
+        const productsCollection = client.db('eKapor').collection('products');
         const usersCollection = client.db('eKapor').collection('users');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10s' });
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '2h' });
             res.send({ token });
         });
 
@@ -55,7 +56,7 @@ async function run() {
             }
         });
 
-        app.post('/create-user', async (req, res) => {
+        app.post('/create-user', verifyJWT, async (req, res) => {
             const user = req.body;
             const query = { email: user.email };
             const alreadyUser = await usersCollection.findOne(query);
@@ -67,6 +68,22 @@ async function run() {
                 res.send(alreadyUser);
             }
         });
+
+        app.get('/products/:productCategory', verifyJWT, async (req, res) => {
+            const categoryID = req.params.productCategory;
+            const allProducts = await productsCollection.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'product_sellerID',
+                        foreignField: 'uid',
+                        as: 'seller_details'
+                    }
+                }
+            ]).toArray();
+            const products = allProducts.filter(pd => pd.product_category == categoryID)
+            res.send(products);
+        })
     }
     finally {
 
