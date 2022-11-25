@@ -31,19 +31,41 @@ function verifyJWT(req, res, next) {
 async function run() {
     try {
         const categoriesCollection = client.db('eKapor').collection('categories');
+        const usersCollection = client.db('eKapor').collection('users');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10s' });
             res.send({ token });
-        })
+        });
 
         app.get('/categories', async (req, res) => {
-            const query = {};
-            const cursor = categoriesCollection.find(query);
-            const categories = await cursor.toArray();
-            res.send(categories);
+            const category_id = req.query.category_id;
+            if (category_id) {
+                const query = { _id: ObjectId(category_id) };
+                const cursor = categoriesCollection.find(query);
+                const category = await cursor.toArray();
+                res.send(category);
+            }
+            else {
+                const query = {};
+                const cursor = categoriesCollection.find(query);
+                const categories = await cursor.toArray();
+                res.send(categories);
+            }
+        });
 
+        app.post('/create-user', async (req, res) => {
+            const user = req.body;
+            const query = { email: user.email };
+            const alreadyUser = await usersCollection.findOne(query);
+            if (!alreadyUser) {
+                const result = await usersCollection.insertOne(user);
+                res.send(result);
+            }
+            if (alreadyUser) {
+                res.send(alreadyUser);
+            }
         });
     }
     finally {
