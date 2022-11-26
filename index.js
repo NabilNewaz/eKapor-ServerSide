@@ -115,6 +115,25 @@ async function run() {
             }
         });
 
+        app.patch('/verify-seller/:id', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'admin') {
+                const id = req.params.id;
+                const updateVerifyData = req.body;
+                const query = { uid: id };
+                const options = { upsert: true };
+                const updatedUser = {
+                    $set: updateVerifyData
+                }
+                const result = await usersCollection.updateOne(query, updatedUser, options);
+                res.send(result);
+            }
+            else {
+                return res.status(403).send({ message: 'unauthorized access' });
+            }
+        })
 
     }
     finally {
