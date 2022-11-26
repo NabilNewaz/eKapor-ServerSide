@@ -56,6 +56,13 @@ async function run() {
             }
         });
 
+        app.get('/categories-name', async (req, res) => {
+            const query = {};
+            const cursor = categoriesCollection.find(query).project({ category_name: 1 });
+            const categories = await cursor.toArray();
+            res.send(categories);
+        });
+
         app.post('/create-user', verifyJWT, async (req, res) => {
             const user = req.body;
             const query = { email: user.email };
@@ -163,7 +170,21 @@ async function run() {
             else {
                 return res.status(403).send({ message: 'unauthorized access' });
             }
-        })
+        });
+
+        app.post('/add-product', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'seller') {
+                const product = req.body;
+                const result = await productsCollection.insertOne(product);
+                res.send(result);
+            }
+            else {
+                return res.status(403).send({ message: 'unauthorized access' });
+            }
+        });
 
     }
     finally {
