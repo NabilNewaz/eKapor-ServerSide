@@ -84,6 +84,38 @@ async function run() {
             const products = allProducts.filter(pd => pd.product_category == categoryID)
             res.send(products);
         })
+
+        app.get('/sellers', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'admin') {
+                const query = { role: 'seller' };
+                const cursor = usersCollection.find(query);
+                const sellers = await cursor.toArray();
+                res.send(sellers);
+            }
+            else {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+        });
+
+        app.get('/buyers', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'admin') {
+                const query = { role: 'buyer' };
+                const cursor = usersCollection.find(query);
+                const sellers = await cursor.toArray();
+                res.send(sellers);
+            }
+            else {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+        });
+
+
     }
     finally {
 
