@@ -133,6 +133,21 @@ async function run() {
             else {
                 return res.status(403).send({ message: 'unauthorized access' });
             }
+        });
+
+        app.delete('/sellers/:id', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'admin') {
+                const id = req.params.id;
+                const query = { uid: id };
+                const result = await usersCollection.deleteOne(query);
+                res.send(result);
+            }
+            else {
+                return res.status(403).send({ message: 'unauthorized access' });
+            }
         })
 
     }
