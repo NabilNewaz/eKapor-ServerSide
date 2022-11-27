@@ -76,6 +76,18 @@ async function run() {
             }
         });
 
+        app.get('/users', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const User = await usersCollection.findOne(userQuery);
+            if (User) {
+                res.send(User);
+            }
+            else {
+                return res.send([]);
+            }
+        });
+
         app.get('/products/:productCategory', verifyJWT, async (req, res) => {
             const categoryID = req.params.productCategory;
             const allProducts = await productsCollection.aggregate([
@@ -88,7 +100,7 @@ async function run() {
                     }
                 }
             ]).toArray();
-            const products = allProducts.filter(pd => pd.product_category == categoryID)
+            const products = allProducts.filter(pd => pd.product_category == categoryID && !pd.isBooked)
             res.send(products);
         })
 
@@ -184,6 +196,18 @@ async function run() {
             else {
                 return res.status(403).send({ message: 'unauthorized access' });
             }
+        });
+
+        app.patch('/product-booked/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const updateProductData = req.body;
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedProduct = {
+                $set: updateProductData
+            }
+            const result = await productsCollection.updateOne(query, updatedProduct, options);
+            res.send(result);
         });
 
     }
