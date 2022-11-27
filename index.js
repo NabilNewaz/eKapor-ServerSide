@@ -184,6 +184,21 @@ async function run() {
             }
         });
 
+        app.delete('/product/:id', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'seller') {
+                const id = req.params.id;
+                const query = { _id: ObjectId(id) };
+                const result = await productsCollection.deleteOne(query);
+                res.send(result);
+            }
+            else {
+                return res.status(403).send({ message: 'unauthorized access' });
+            }
+        });
+
         app.post('/add-product', verifyJWT, async (req, res) => {
             const decoded = req.decoded;
             const userQuery = { uid: decoded.uid };
@@ -208,6 +223,21 @@ async function run() {
             }
             const result = await productsCollection.updateOne(query, updatedProduct, options);
             res.send(result);
+        });
+
+        app.get('/my-products', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'seller') {
+                const query = { product_sellerID: decoded.uid };
+                const cursor = productsCollection.find(query);
+                const myproducts = await cursor.toArray();
+                res.send(myproducts);
+            }
+            else {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
         });
 
     }
