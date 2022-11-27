@@ -213,6 +213,26 @@ async function run() {
             }
         });
 
+        app.patch('/peoduct-advertise/:id', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'seller') {
+                const id = req.params.id;
+                const updateAdvertiseData = req.body;
+                const query = { _id: ObjectId(id) };
+                const options = { upsert: true };
+                const advertiseData = {
+                    $set: updateAdvertiseData
+                }
+                const result = await productsCollection.updateOne(query, advertiseData, options);
+                res.send(result);
+            }
+            else {
+                return res.status(403).send({ message: 'unauthorized access' });
+            }
+        });
+
         app.patch('/product-booked/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const updateProductData = req.body;
