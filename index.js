@@ -233,6 +233,21 @@ async function run() {
             }
         });
 
+        app.get('/advertise-product', async (req, res) => {
+            const allProducts = await productsCollection.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'product_sellerID',
+                        foreignField: 'uid',
+                        as: 'seller_details'
+                    }
+                }
+            ]).toArray();
+            const products = allProducts.filter(pd => pd.isAdvertised == true && !pd.isBooked)
+            res.send(products);
+        });
+
         app.patch('/product-booked/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const updateProductData = req.body;
