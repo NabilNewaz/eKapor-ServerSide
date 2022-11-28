@@ -325,6 +325,22 @@ async function run() {
             }
         });
 
+        app.get('/my-buyers', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'seller') {
+                const query = { product_sellerID: decoded.uid, isBooked: true };
+                const cursor = productsCollection.find(query);
+                const myproducts = await cursor.toArray();
+                res.send(myproducts);
+            }
+            else {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+        });
+
+
     }
     finally {
 
