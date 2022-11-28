@@ -104,6 +104,29 @@ async function run() {
             res.send(products);
         })
 
+        app.get('/my-orders', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const User = await usersCollection.findOne(userQuery);
+            if (User) {
+                const allProducts = await productsCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'product_sellerID',
+                            foreignField: 'uid',
+                            as: 'seller_details'
+                        }
+                    }
+                ]).toArray();
+                const products = allProducts.filter(pd => pd.isBooked && pd.bookedData.userID == decoded.uid)
+                res.send(products);
+            }
+            else {
+                return res.send([]);
+            }
+        })
+
         app.get('/sellers', verifyJWT, async (req, res) => {
             const decoded = req.decoded;
             const userQuery = { uid: decoded.uid };
