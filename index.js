@@ -157,6 +157,21 @@ async function run() {
             }
         });
 
+        app.get('/reported-items', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            const userQuery = { uid: decoded.uid };
+            const checkUser = await usersCollection.findOne(userQuery);
+            if (checkUser.role === 'admin') {
+                const query = { isReported: true };
+                const cursor = productsCollection.find(query);
+                const items = await cursor.toArray();
+                res.send(items);
+            }
+            else {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+        });
+
         app.patch('/verify-seller/:id', verifyJWT, async (req, res) => {
             const decoded = req.decoded;
             const userQuery = { uid: decoded.uid };
@@ -211,7 +226,7 @@ async function run() {
             const decoded = req.decoded;
             const userQuery = { uid: decoded.uid };
             const checkUser = await usersCollection.findOne(userQuery);
-            if (checkUser.role === 'seller') {
+            if (checkUser.role === 'seller' || checkUser.role === 'admin') {
                 const id = req.params.id;
                 const query = { _id: ObjectId(id) };
                 const result = await productsCollection.deleteOne(query);
@@ -272,6 +287,18 @@ async function run() {
         });
 
         app.patch('/product-booked/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const updateProductData = req.body;
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedProduct = {
+                $set: updateProductData
+            }
+            const result = await productsCollection.updateOne(query, updatedProduct, options);
+            res.send(result);
+        });
+
+        app.patch('/product-reported/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const updateProductData = req.body;
             const query = { _id: ObjectId(id) };
