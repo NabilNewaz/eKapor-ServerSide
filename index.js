@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 
@@ -340,6 +341,33 @@ async function run() {
             }
         });
 
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = parseInt(price * 100);
+            if (price) {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    currency: 'usd',
+                    amount: amount,
+                    payment_method_types: [
+                        "card"
+                    ]
+                })
+                res.send({ clientSecret: paymentIntent.client_secret });
+            }
+        });
+
+        app.patch('/product-selled/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const updateProductData = req.body;
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedProduct = {
+                $set: updateProductData
+            }
+            const result = await productsCollection.updateOne(query, updatedProduct, options);
+            res.send(result);
+        });
 
     }
     finally {
